@@ -34,16 +34,34 @@ while (true) {
     content: userInput,
   });
 
-  const response = await client.responses.create({
+  const stream = await client.responses.create({
     model: "openai/gpt-oss-120b",
     input: messages,
+    stream: true,
   });
 
-  console.log("\nAI:", response.output_text, "\n");
+  let assistantMessage = "";
+
+  process.stdout.write("\nAI: ");
+
+  for await (const event of stream) {
+    switch (event.type) {
+      case "response.output_text.delta":
+        process.stdout.write(event.delta);
+        assistantMessage += event.delta;
+        break;
+
+      default:
+        // Ignore other event types
+        break;
+    }
+  }
+
+  process.stdout.write("\n\n");
 
   messages.push({
     role: "assistant",
-    content: response.output_text,
+    content: assistantMessage,
   });
 }
 
